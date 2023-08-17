@@ -1,0 +1,44 @@
+version: "3.9"
+services:
+  backend:
+    container_name: srl-api
+    ports:
+      - '80:80'
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 80 --reload
+    restart: on-failure
+    environment:
+      - WATCHFILES_FORCE_POLLING=true
+    volumes:
+      - ./:/usr/src/app
+  db:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'flora_annotation'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'password'
+      MYSQL_ROOT_PASSWORD: 'password'
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+    volumes:
+      - mysql_db:/var/lib/mysql
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: pma
+    links:
+      - db
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+    restart: always
+    ports:
+      - '8080:80'
+
+volumes:
+  mysql_db:
