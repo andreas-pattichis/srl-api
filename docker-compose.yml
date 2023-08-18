@@ -11,6 +11,8 @@ services:
     restart: on-failure
     environment:
       - WATCHFILES_FORCE_POLLING=true
+    links:
+      - db
     volumes:
       - ./:/usr/src/app
   db:
