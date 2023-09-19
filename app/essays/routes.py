@@ -47,4 +47,4 @@ async def essay_results_from_user(username: str):
         }
         pass
 
-    return sub_dict, main_dict, color_dict
+    return essay

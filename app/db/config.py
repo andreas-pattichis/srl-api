@@ -9,7 +9,10 @@ TORTOISE_ORM = {
     "connections": {"default": settings.DATABASE_URI},
     "apps": {
         "models": {
-            "models": ['app.essays.models'],
+            "models": [
+                'app.essays.models',
+                'app.trace_data.models'
+            ],
             "default_connection": "default",
         },
     },

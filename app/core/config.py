@@ -31,7 +31,6 @@ class Paths:
     BASE_DIR: Path = ROOT_DIR / "app"
     ASSETS_DIR: Path = BASE_DIR / "assets"
     LABEL_NAMES_CSV: Path = ASSETS_DIR / "label_names.csv"
-    PROCESS_LABEL_DIR: Path = ASSETS_DIR / "processlabel"
 
 
 class Settings(BaseSettings):

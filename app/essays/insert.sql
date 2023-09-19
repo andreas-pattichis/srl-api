@@ -1,0 +1,2 @@
+INSERT INTO `essay` (`id`, `user_id`, `save_time`, `username`, `url`, `essay_content`, `essay_content_json`) VALUES
+(1, 3, 1687866140519, 'fshl001 FSHL', 'https://nijmegen.floraproject.org/moodle/mod/page/view.php?id=7', 'I can write my essay here\r\nhet geeft alleen het aantal woorden aan. Is dat okï¿© of willen we weer aftellend?\r\nGeen NL versie??', '{\"ops\":[{\"insert\":\"I can write my essay here\\nhet geeft alleen het aantal woorden aan. Is dat okï¿© of willen we weer aftellend? \\nGeen NL versie??\\n\"}]}');

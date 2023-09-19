@@ -1,5 +1,14 @@
 from tortoise.models import Model
 from tortoise import fields
+from pathlib import Path
+
+
+def query():
+    f = open('./app/essays/insert.sql', mode='r', encoding='utf-8-sig')
+    q = f.read()
+    f.close()
+
+    return q
 
 
 class Essay(Model):

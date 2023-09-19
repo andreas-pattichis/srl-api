@@ -4,6 +4,7 @@ import pandas as pd
 from app.core.config import settings
 
 from app.essays.models import Essay
+from app.trace_data.models import TraceData
 
 
 def pydantic_model():
@@ -37,20 +38,22 @@ def load_label_meanings():
     return sub_dict, main_dict, color_dict
 
 
-def load_process_features_study_f(sub_dict, main_dict, color_dict, f):
+def load_process_features_study(sub_dict, main_dict, color_dict, user):
     # getting the data of the specific student
     # here we read the pattern labels from the flora server
-    data = pd.read_csv(settings.PATHS.PROCESS_LABEL_DIR + f)
-    data = data[data["Process End Time"] > -1]
+    data = pd.read_csv()
 
-    data["Process End Time"] = data["Process End Time"] / settings.MAX_TIME
-    data["Process Start Time"] = data["Process Start Time"] / settings.MAX_TIME
+    return data
+    data = data[data["process_end_time"] > -1]
+
+    data["process_end_time"] = data["process_end_time"] / settings.MAX_TIME
+    data["process_start_time"] = data["process_start_time"] / settings.MAX_TIME
 
     # adding extra columns to the data frame
-    data["Process_Time_Spent"] = data["Process End Time"] - data["Process Start Time"]
-    data["Process_sub"] = data["Process Label"].map(sub_dict)
+    data["process_time_spend"] = data["process_end_time"] - data["process_start_time"]
+    data["process_sub"] = data["Process Label"].map(sub_dict)
     data["Process_main"] = data["Process Label"].map(main_dict)
-    data["Color"] = data["Process Label"].map(color_dict)
+    data["color"] = data["Process Label"].map(color_dict)
 
     time_scaler = settings.MAX_TIME / 60000
 

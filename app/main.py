@@ -5,10 +5,10 @@ from app.essays.models import Essay
 from tortoise.contrib.fastapi import HTTPNotFoundError
 from tortoise.contrib.pydantic import pydantic_model_creator
 from app.essays.routes import router as essays_router
+from app.trace_data.routes import router as tracedata_router
 
 origins = [
-    "http://localhost",
-    "https://floralearn.org",
+    '*'
 ]
 
 
@@ -18,6 +18,7 @@ def get_application() -> FastAPI:
         description=""
     )
     _app.include_router(essays_router)
+    _app.include_router(tracedata_router)
     _app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
