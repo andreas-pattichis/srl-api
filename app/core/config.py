@@ -9,6 +9,8 @@ from pydantic import (
     field_validator,
 )
 from pydantic_settings import BaseSettings
+import os
+from dotenv import load_dotenv
 
 try:
     from enum import StrEnum
@@ -31,6 +33,7 @@ class Paths:
     BASE_DIR: Path = ROOT_DIR / "app"
     ASSETS_DIR: Path = BASE_DIR / "assets"
     LABEL_NAMES_CSV: Path = ASSETS_DIR / "label_names.csv"
+    INFRA_DIR: Path = ROOT_DIR / "infra"
 
 
 class Settings(BaseSettings):
@@ -42,7 +45,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     SERVER_HOST: AnyHttpUrl = "http://localhost:80"  # type:ignore
     PAGINATION_PER_PAGE: int = 20
-    MAX_TIME: int = 2700000 # max time = 45 mins
+    MAX_TIME: int = 2700000  # max time = 45 mins
 
     BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = []
     BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = []
@@ -54,12 +57,14 @@ class Settings(BaseSettings):
             return v
         raise ValueError(v)
 
+    load_dotenv(dotenv_path=Path("infra/.env"))
+
     DATABASE_URI: str = "mysql://{}:{}@{}:{}/{}".format(
-        'user',
-        'password',
-        'host.docker.internal',
+        os.getenv('DB_USER'),
+        os.getenv('DB_PASSWORD'),
+        os.getenv('DB_HOST'),
         '3306',
-        'flora_annotation',
+        os.getenv('DB_NAME'),
     )
 
     class Config:
