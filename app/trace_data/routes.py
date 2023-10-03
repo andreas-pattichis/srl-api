@@ -5,7 +5,7 @@ from .utils import *
 
 from app.trace_data.models import TraceData
 
-router = APIRouter(prefix="/tracedata", tags=["tracedata"])
+router = APIRouter(prefix="/api/tracedata", tags=["tracedata"])
 
 
 @router.get(
@@ -25,38 +25,48 @@ async def tracedata_results_from_user(username: str):
     # loading the maps for colour and labels of each pattern id
     sub_dict, main_dict, color_dict = load_label_meanings()
 
-    trace_data = await TraceData.filter(username=username)
+    username = username.replace("_", "")
 
-    try:  # making the pattern dataframe
-        trace_data = await model_to_df(trace_data)
-
-        df, time_scaler = await load_process_features_study(sub_dict,
-                                                            main_dict,
-                                                            color_dict,
-                                                            trace_data)
-
-        print("Load process features study")
-        print(df.to_dict())
-
-    except Exception as e:
-        print(e)
+    course_ids = await TraceData.filter(username=username, process_label__isnull=False).distinct().values('course_id')
+    
+    if len(course_ids) == 0:
         return {
-            'statusCode': 400,
+                'statusCode': 404,
+            }
+
+    results = []
+
+    for course_id in course_ids:
+        trace_data = await TraceData.filter(username=username, process_label__isnull=False, course_id=course_id['course_id'])
+        try:  # making the pattern dataframe
+            trace_data = await model_to_df(trace_data)
+            df, time_scaler = await load_process_features_study(sub_dict,
+                                                                main_dict,
+                                                                color_dict,
+                                                                trace_data)
+
+        except Exception as e:
+            print(e)
+
+        # making the data series and percentages for meta and cog
+        m_series, m_perc, m_personal = await create_series(df, "Metacognition", time_scaler)
+        c_series, c_perc, c_personal = await create_series(df, "Cognition", time_scaler)
+        series, perc, personal = await create_series(df, "Combined", time_scaler)
+
+        result = {
+            'course_id': course_id['course_id'],
+            'name': "Essay "+str(course_id['course_id']),
+            'meta': m_series,
+            'm_perc': m_perc,
+            'cog': c_series,
+            'c_perc': c_perc,
+            'combined_perc': perc,
+            'combined_series': series,
         }
-        pass
 
-    # making the data series and percentages for meta and cog
-    m_series, m_perc, m_personal = await create_series(df, "Metacognition", time_scaler)
-    c_series, c_perc, c_personal = await create_series(df, "Cognition", time_scaler)
-
-    result = {
-        'meta': m_series,
-        'm_perc': m_perc,
-        'cog': c_series,
-        'c_perc': c_perc,
-    }
+        results.append(result)
 
     return {
         'statusCode': 200,
-        'body': result
+        'body': results
     }

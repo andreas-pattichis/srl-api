@@ -42,6 +42,8 @@ async def model_to_df(trace_data):
 
     n_items = len(trace_data)
     for i, data in enumerate(trace_data):
+        data.save_time = int(data.save_time) # See if we can automatically make this field an int
+    
         if i == 0:
             essay_start_time = data.save_time
 
@@ -49,19 +51,18 @@ async def model_to_df(trace_data):
         save_time.append(data.save_time)
         process_label.append(data.process_label)
 
-        print(data.save_time - essay_start_time)
         process_start_time.append(data.save_time - essay_start_time)
 
         if i != n_items - 1:
-            end_time = trace_data[i + 1].save_time - essay_start_time - 1
+            end_time = int(trace_data[i + 1].save_time) - essay_start_time - 1
         else:
-            end_time = trace_data[i].save_time - essay_start_time
+            end_time = int(trace_data[i].save_time) - essay_start_time
 
         if end_time > settings.MAX_TIME:
             end_time = settings.MAX_TIME
 
         process_end_time.append(end_time)
-
+    
     df = pd.DataFrame(data={
         'username': username,
         'save_time': save_time,
@@ -70,7 +71,6 @@ async def model_to_df(trace_data):
         'process_label': process_label
     })
 
-    print(df.to_dict())
 
     return df
 
@@ -89,12 +89,7 @@ async def load_process_features_study(sub_dict, main_dict, color_dict, data):
     data["process_main"] = data["process_label"].map(main_dict)
     data["color"] = data["process_label"].map(color_dict)
 
-    print("Main processes")
-    print(data["process_main"].to_dict())
-
     time_scaler = settings.MAX_TIME / 60000
-
-    print(data.to_dict())
 
     # return the full user df
     return data, time_scaler
@@ -102,26 +97,20 @@ async def load_process_features_study(sub_dict, main_dict, color_dict, data):
 
 async def create_series(df, cog_type, time_scaler):
     print("Create_series df")
-    print(df.to_dict())
-
-    print("Cog type")
-    print(cog_type)
 
     # blank colour picker:
     blank_colour = "#ebebeb"
 
     # selecting the correct type of labels
-    m_df = df[df["process_main"] == cog_type]
+    if cog_type == 'Combined':
+        m_df = df[(df["process_main"] == 'Metacognition') | (df["process_main"] == 'Cognition')]
+    else:
+        m_df = df[df["process_main"] == cog_type]
     m_df = m_df[
         ["process_start_time", "process_end_time", "process_time_spend", "process_sub", "color"]].reset_index(
         inplace=False)
 
-    print("m_df")
-    print(m_df.to_dict())
-
     # adds a blank at the start since not both meta and cog can have the first label
-    print("Test 1")
-    print(m_df.iloc[0, 1])
 
     # Didn't really need this anymore since we don't have an 'essay start' anymore
     # line = pd.DataFrame(
@@ -133,9 +122,6 @@ async def create_series(df, cog_type, time_scaler):
     m_df = m_df[
         ["process_start_time", "process_end_time", "process_time_spend", "process_sub", "color"]].reset_index(
         drop=True)
-
-    print("M_df after concat")
-    print(m_df.to_dict())
 
     # now we iterate through each row of the df and if there is a gap between two processes we fill the gap with a BLANK
     m_np = []
@@ -159,19 +145,14 @@ async def create_series(df, cog_type, time_scaler):
     # having created the dataframe we now just have to create the series of data
     series = []
     for i, row in m_df.iterrows():
-        print("Testing time spent")
-        print(row["process_time_spend"])
-
         if row["process_time_spend"] > 0:
             row_dic = {"name": row["process_sub"], "data": [row["process_time_spend"]], "color": row["color"]}
             series.append(row_dic)
 
-    print("Test 2")
-    print(row_dic)
-
     # the order specified
-    orders = {"Metacognition": ["Orientatie", "Plannen", "Evaluatie", "Monitoren"],
-              "Cognition": ["Lezen", "Herlezen", "Schrijven"]}
+    orders = {"Metacognition": ["Orientatie", "Plannen", "Monitoren", "Evaluatie"],
+              "Cognition": ["Lezen", "Herlezen", "Schrijven", "Verwerking / Organisatie"],
+              "Combined": ["Orientatie", "Plannen", "Monitoren", "Evaluatie", "Lezen", "Herlezen", "Schrijven", "Verwerking / Organisatie"]}
 
     # getting the percentages of each process, along with time until started and time spent on it
     perc = []
