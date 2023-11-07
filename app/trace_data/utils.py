@@ -42,9 +42,9 @@ async def model_to_df(trace_data):
 
     n_items = len(trace_data)
     for i, data in enumerate(trace_data):
-        data.save_time = int(data.save_time) # See if we can automatically make this field an int
-    
-        if i == 0:
+        data.save_time = int(data.save_time)  # See if we can automatically make this field an int
+
+        if i == 0:  # First element is the essay start time
             essay_start_time = data.save_time
 
         username.append(data.username)
@@ -62,15 +62,13 @@ async def model_to_df(trace_data):
             end_time = settings.MAX_TIME
 
         process_end_time.append(end_time)
-    
+
     df = pd.DataFrame(data={
         'username': username,
-        'save_time': save_time,
         'process_start_time': process_start_time,
         'process_end_time': process_end_time,
         'process_label': process_label
     })
-
 
     return df
 
@@ -110,15 +108,6 @@ async def create_series(df, cog_type, time_scaler):
         ["process_start_time", "process_end_time", "process_time_spend", "process_sub", "color"]].reset_index(
         inplace=False)
 
-    # adds a blank at the start since not both meta and cog can have the first label
-
-    # Didn't really need this anymore since we don't have an 'essay start' anymore
-    # line = pd.DataFrame(
-    #     {"process_start_time": 0, "process_end_time": m_df.iloc[0, 1], "process_time_spend": m_df.iloc[0, 1],
-    #      "process_sub": "Niet Gedetecteerd", "color": blank_colour}, index=[0])
-    #
-    # # concatenate two dataframe
-    # m_df = pd.concat([line, m_df]).reset_index(drop=True)
     m_df = m_df[
         ["process_start_time", "process_end_time", "process_time_spend", "process_sub", "color"]].reset_index(
         drop=True)
@@ -152,7 +141,8 @@ async def create_series(df, cog_type, time_scaler):
     # the order specified
     orders = {"Metacognition": ["Orientatie", "Plannen", "Monitoren", "Evaluatie"],
               "Cognition": ["Lezen", "Herlezen", "Schrijven", "Verwerking / Organisatie"],
-              "Combined": ["Orientatie", "Plannen", "Monitoren", "Evaluatie", "Lezen", "Herlezen", "Schrijven", "Verwerking / Organisatie"]}
+              "Combined": ["Orientatie", "Plannen", "Monitoren", "Evaluatie", "Lezen", "Herlezen", "Schrijven",
+                           "Verwerking / Organisatie"]}
 
     # getting the percentages of each process, along with time until started and time spent on it
     perc = []

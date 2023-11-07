@@ -33,4 +33,5 @@ HCEO5,Verwerking / Organisatie,LABEL_ANNOTATION*,Learners create or choose label
 HCEO6,Verwerking / Organisatie,EDIT_ANNOTATION*,Learners take notes during learning,#FDBF6F
 ESSAY_TASK_START,ESSAY_TASK_START,,,#FFFFFF
 ESSAY_TASK_END,ESSAY_TASK_END,,,#FFFFFF
-NO_PATTERN,NO_PATTERN,,,#FFFFFF
+NO_PATTERN,Niet Gedetecteerd,,,#ebebeb
+NOT_RECOGNIZED,Niet Gedetecteerd,,,#ebebeb
