@@ -61,8 +61,6 @@ async def tracedata_results_from_user(username: str, study: str):
 
         results.append(result)
 
-    print(results)
-
     return {
         'statusCode': 200,
         'body': results
