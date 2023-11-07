@@ -12,22 +12,16 @@ def pydantic_model():
 # reading in the label csv to assign each pattern label to a type and subtype
 def load_label_meanings():
     # abel names is constant and used to map individual labels to the parent process
-    print(settings.PATHS.LABEL_NAMES_CSV)
     labels_df = pd.read_csv(settings.PATHS.LABEL_NAMES_CSV)
     sub_dict = {}
     main_dict = {}
     color_dict = {}
 
     # reading in the type of each pattern label and creating a dictionary for mapping
-    for index, row in labels_df.iterrows():
+    for _, row in labels_df.iterrows():
         sub_dict[row["Pattern No."]] = row["Sub-category"]
         color_dict[row["Pattern No."]] = row["color"]
-        m_pattern = row["Pattern No."]
-        if m_pattern[0] == "M":
-            main_dict[row["Pattern No."]] = "Metacognition"
-        else:
-            main_dict[row["Pattern No."]] = "Cognition"
-        main_dict["NO_PATTERN"] = "NO_PATTERN"
+        main_dict[row["Pattern No."]] = row["Category"]
 
     return sub_dict, main_dict, color_dict
 
@@ -51,7 +45,7 @@ async def model_to_df(trace_data):
             essay_start_time = data.save_time
 
         if i != n_items - 1:
-            end_time = int(trace_data[i + 1].save_time) - essay_start_time - 1
+            end_time = int(trace_data[i + 1].save_time) - essay_start_time
         else:
             end_time = int(trace_data[i].save_time) - essay_start_time
 
@@ -74,35 +68,27 @@ async def model_to_df(trace_data):
         'username': username,
         'process_start_time': process_start_time,
         'process_end_time': process_end_time,
-        'process_label': process_label
+        'process_label': process_label,
     })
+    df["process_time_spend"] = df["process_end_time"] - df["process_start_time"]
 
     return df
 
 
-async def load_process_features_study(sub_dict, main_dict, color_dict, data):
-    # getting the data of the specific student
-    # here we read the pattern labels from the flora server
-
-    # milliseconds divided by 45 minutes (in ms)
-    data["process_end_time"] = data["process_end_time"] / settings.MAX_TIME
-    data["process_start_time"] = data["process_start_time"] / settings.MAX_TIME
+async def map_process_labels(data):
+    # loading the maps for colour and labels of each pattern id
+    sub_dict, main_dict, color_dict = load_label_meanings()
 
     # adding extra columns to the data frame
-    data["process_time_spend"] = data["process_end_time"] - data["process_start_time"]
     data["process_sub"] = data["process_label"].map(sub_dict)
     data["process_main"] = data["process_label"].map(main_dict)
     data["color"] = data["process_label"].map(color_dict)
 
-    time_scaler = settings.MAX_TIME / 60000
-
     # return the full user df
-    return data, time_scaler
+    return data
 
 
-async def create_series(df, cog_type, time_scaler):
-    print("Create_series df")
-
+async def create_series(df, cog_type):
     # blank colour picker:
     blank_colour = "#ebebeb"
 
@@ -111,9 +97,6 @@ async def create_series(df, cog_type, time_scaler):
         m_df = df[(df["process_main"] == 'Metacognition') | (df["process_main"] == 'Cognition')]
     else:
         m_df = df[df["process_main"] == cog_type]
-    m_df = m_df[
-        ["process_start_time", "process_end_time", "process_time_spend", "process_sub", "color"]].reset_index(
-        inplace=False)
 
     m_df = m_df[
         ["process_start_time", "process_end_time", "process_time_spend", "process_sub", "color"]].reset_index(
@@ -121,28 +104,30 @@ async def create_series(df, cog_type, time_scaler):
 
     # now we iterate through each row of the df and if there is a gap between two processes we fill the gap with a BLANK
     m_np = []
+
+    if m_df.iloc[0]["process_start_time"] > 0:
+        m_np.append([0, m_df.iloc[0]["process_start_time"],  m_df.iloc[0]["process_start_time"], "Niet Gedetecteerd", blank_colour])
+
     for i, row in m_df.iterrows():
-        m_row = []
-        if (row["process_start_time"] - m_df.iloc[i - 1, 1]) > 0.00001:
+        if i != 0 and row["process_start_time"] - m_df.iloc[i - 1]["process_end_time"]:
             m_np.append(
-                [m_df.iloc[i - 1, 1], row["process_start_time"], row["process_start_time"] - m_df.iloc[i - 1, 1],
+                [m_df.iloc[i - 1]["process_end_time"], row["process_start_time"], row["process_start_time"] - m_df.iloc[i - 1]["process_end_time"],
                  "Niet Gedetecteerd", blank_colour])
         m_np.append(row.to_list())
 
     # adding a blank at the end in case the last process is of the other type of label
-    m_np.append([m_df.iloc[-1, 1], 1, 1 - m_df.iloc[-1, 1], "Niet Gedetecteerd", blank_colour])
+    if m_df.iloc[-1]["process_end_time"] < settings.MAX_TIME:
+        m_np.append([m_df.iloc[-1]["process_end_time"], ["process_end_time"], settings.MAX_TIME - m_df.iloc[-1]["process_end_time"], "Niet Gedetecteerd", blank_colour])
+    
     m_df = pd.DataFrame(m_np,
                         columns=["process_start_time", "process_end_time", "process_time_spend", "process_sub",
                                  "color"])
-    m_df["process_time_spend"] = m_df["process_time_spend"] * time_scaler
-    m_df["process_end_time"] = m_df["process_end_time"] * time_scaler
-    m_df["process_start_time"] = m_df["process_start_time"] * time_scaler
 
     # having created the dataframe we now just have to create the series of data
     series = []
     for i, row in m_df.iterrows():
         if row["process_time_spend"] > 0:
-            row_dic = {"name": row["process_sub"], "data": [row["process_time_spend"]], "color": row["color"]}
+            row_dic = {"name": row["process_sub"], "data": [row["process_time_spend"] / 60000], "color": row["color"]}
             series.append(row_dic)
 
     # the order specified
@@ -152,27 +137,15 @@ async def create_series(df, cog_type, time_scaler):
                            "Verwerking / Organisatie"]}
 
     # getting the percentages of each process, along with time until started and time spent on it
-    perc = []
-    personal = {}
-    process_order = list(m_df["process_sub"])
+    percentages = []
 
     for i in orders[cog_type]:
         row_dic = {}
         row_dic["name"] = i
 
         # percentage
-        row_dic["data"] = m_df[m_df["process_sub"] == i]["process_time_spend"].sum() / (
-            m_df["process_end_time"].max())
+        row_dic["data"] = df[df["process_sub"] == i]["process_time_spend"].sum() / df[(df["process_main"] == 'Metacognition') | (df["process_main"] == 'Cognition')]["process_time_spend"].sum()
 
-        # minutes spent on it
-        personal[i + "Mins"] = m_df[m_df["process_sub"] == i]["process_time_spend"].sum()
+        percentages.append(row_dic)
 
-        # started at minute:
-        if i in process_order:
-            personal[i + "Start"] = m_df[m_df["process_sub"] == i]["process_start_time"].min()
-        else:
-            personal[i + "Start"] = 0
-
-        perc.append(row_dic)
-
-    return [series, perc, personal]
+    return series, percentages
