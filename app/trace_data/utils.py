@@ -41,17 +41,14 @@ async def model_to_df(trace_data):
     process_label = list()
 
     n_items = len(trace_data)
+
+    last_process_label = None
+
     for i, data in enumerate(trace_data):
         data.save_time = int(data.save_time)  # See if we can automatically make this field an int
 
         if i == 0:  # First element is the essay start time
             essay_start_time = data.save_time
-
-        username.append(data.username)
-        save_time.append(data.save_time)
-        process_label.append(data.process_label)
-
-        process_start_time.append(data.save_time - essay_start_time)
 
         if i != n_items - 1:
             end_time = int(trace_data[i + 1].save_time) - essay_start_time - 1
@@ -61,7 +58,17 @@ async def model_to_df(trace_data):
         if end_time > settings.MAX_TIME:
             end_time = settings.MAX_TIME
 
-        process_end_time.append(end_time)
+        if last_process_label != data.process_label:
+            username.append(data.username)
+            save_time.append(data.save_time)
+            process_label.append(data.process_label)
+            last_process_label = data.process_label
+
+            process_start_time.append(data.save_time - essay_start_time)
+            process_end_time.append(end_time)
+        else:
+            process_end_time[-1] = end_time
+
 
     df = pd.DataFrame(data={
         'username': username,

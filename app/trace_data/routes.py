@@ -42,7 +42,7 @@ async def tracedata_results_from_user(username: str, study: str):
     results = []
 
     for course_id in course_ids:
-        trace_data = await TraceData.filter(firstname=username, lastname=study, process_label__isnull=False, course_id=course_id['course_id'])
+        trace_data = await TraceData.filter(firstname=username, lastname=study, process_label__isnull=False, course_id=course_id['course_id']).order_by('save_time')
         try:  # making the pattern dataframe
             trace_data = await model_to_df(trace_data)
             df, time_scaler = await load_process_features_study(sub_dict,
