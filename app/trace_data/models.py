@@ -11,5 +11,8 @@ class TraceData(Model):
     save_time = fields.BigIntField()
     process_label = fields.CharField(max_length=64)
 
+    class Meta:
+        table = "trace_data"
+
     def __str__(self):
         return self.username
