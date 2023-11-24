@@ -1,0 +1,38 @@
+Pattern No.,Category,Sub-category,new,example or explain for the patterns,color
+MCO1,Metacognition,Orientatie,GENERAL_INSTRUCTION/RUBRIC -> (NAVIGATION*) -> RELEVANT_READING,"After reading the general instruction page, learners read through the catalog to get a overview of what topics they need to learn, then read some pages",#A6CEE3
+MCO2,Metacognition,Orientatie,GENERAL_INSTRUCTION/RUBRIC -> (GENERAL_INSTRUCTION/RUBRIC),"Learners read general instruction and then check the rubir for essay, or the other way round",#A6CEE3
+MCO3,Metacognition,Orientatie,GENERAL_INSTRUCTION/RUBRIC <-> EDIT_ANNOTATION,Learners read the general instruction and create/edit annotations during reading,#A6CEE3
+MCO4,Metacognition,Orientatie,GENERAL_INSTRUCTION/RUBRIC <-> NAVIGATION,Learners read the general instruction and navigate through pages during reading instruction,#A6CEE3
+MCO5,Metacognition,Orientatie,,,#A6CEE3
+MCP1,Metacognition,Plannen,PLANNER -> (NAVIGATION*) -> RELEVANT_READING,"Learners make plan or check plan using planner tool, then navigate to read something",#1F78B4
+MCP2,Metacognition,Plannen,GENERAL_INSTRUCTION/RUBRIC <-> PLANNER* (during first 15mins),Learners open planner tool and make personal plan after reading instruction,#1F78B4
+MCP3,Metacognition,Plannen,PLANNER* (during first 15mins),Learners open planner tool and make personal plan in the first 15 mins,#1F78B4
+MCP4,Metacognition,Plannen,SEARCH_CONTENT*,Learners search certain contents according to instruction and plan.,#1F78B4
+MCE1,Metacognition,Evaluatie,READING -> (NAVIGATION*) -> GENERAL_INSTRUCTION*/RUBRIC*/READ_ANNOTATION* -> (NAVIGATION*) -> READING,"Learners check instruction/rubric when they run into read some irrelevant pages then move on to read some relevant pages, which showed evaluation pattern of these irrelevant materials",#33A02C
+MCE2,Metacognition,Evaluatie,OPEN_ESSAY -> (NAVIGATION*) -> GENERAL_INSTRUCTION*/RUBRIC*/READ_ANNOTATION* -> (NAVIGATION*) -> READING/WRITE_ESSAY,"Learners check instruction/rubric when they read their own writing then move on to wirte or read something else, which showed evaluation pattern of these writing",#33A02C
+MCM1,Metacognition,Monitoren,NAVIGATION <-> READ_ANNOTATION,Learners read previous notes during navigation,#B2DF8A
+MCM2,Metacognition,Monitoren,GENERAL_INSTRUCTION/RUBRIC <-> PLANNER*  (after the first 15mins),Learners check of progress according to instruction and plan.,#B2DF8A
+MCM3,Metacognition,Monitoren,WRITE_ESSAY/OPEN_ESSAY <-> PLANNER/GENERAL_INSTRUCTION/RUBRIC (after the first 15mins),"Check planner, during writing the essay, to monitor if there is enough time to finish the essay",#B2DF8A
+MCM4,Metacognition,Monitoren,TIMER*,Learners check timer during reading or writing as monitoring the learning time,#B2DF8A
+MCM5,Metacognition,Monitoren,PLANNER* (after the first 15mins),Learners open planner tool and check or change personal plan after the first 15 mins,#B2DF8A
+MCM6,Metacognition,Monitoren,SEARCH_ANNOTATION*,Learners search certain annotations,#B2DF8A
+MCM7,Metacognition,Monitoren,READ_ANNOTATION*,Learners read certain annotations,#B2DF8A
+MCM8,Metacognition,Monitoren,OPEN_ESSAY -> READING,Learners read certain annotations,#B2DF8A
+LCF1,Cognition,Lezen,(IR)RELEVANT_READING -> EDIT_ANNOTATION* -> (IR) RELEVANT_READING,Learners read and highlight new learning materials,#E31A1C
+LCF2,Cognition,Lezen,(IR)RELEVANT_READING -> (NAVIGATION*) -> (IR)RELEVANT_READING,Learners read something new and then nagvigate to next page to continue reading,#E31A1C
+LCF4,Cognition,Lezen,(IR)RELEVANT_READING <-> EDIT_ANNOTATION/READ_ANNOTATION,"During reading, learners take notes or highlight something, also they might read their notes or highlight",#E31A1C
+LCF5,Cognition,Lezen,(IR)RELEVANT_READING <-> (IR)RELEVANT_READING,Learners read several pages continuously,#E31A1C
+LCF6,Cognition,Lezen,IRRELEVANT_READING -> (IRRELEVANT_READING),Learners read new irrelevant learning materials,#E31A1C
+LCF7,Cognition,Lezen,RELEVANT_READING -> (RELEVANT_READING),Learners read new relevant learning materials for some mins,#E31A1C
+LCR1,Cognition,Herlezen,RELEVANT_RE-READING -> (RELEVANT_RE-READING),Learners review some relevant learning materials they have been reading before,#FB9A99
+LCR2,Cognition,Herlezen,IRRELEVANT_RE-READING -> (IRRELEVANT_RE-READING),Learners review some irrelevant learning materials they have been reading before,#FB9A99
+HCEO1,Cognition,Schrijven,(IR)RELEVANT_RE-READING -> (NAVIGATION*) -> WRITE_ESSAY -> (WRITE_ESSAY),"After re-reading some learning materials, learners write their essay",#FF7F00
+HCEO2,Cognition,Schrijven,GENERAL_INSTRUCTION/RUBRIC -> (NAVIGATION*) -> WRITE_ESSAY -> (WRITE_ESSAY),"After reading the rubric, learners write their essay",#FF7F00
+HCEO3,Cognition,Schrijven,WRITE_ESSAY -> (WRITE_ESSAY),Learners write the essay continuously,#FF7F00
+HCEO4,Cognition,Verwerking / Organisatie,WRITE_ESSAY/OPEN_ESSAY <-> READ_ANNOTATION,"During writing the essay, learners read their highlights or notes",#FDBF6F
+HCEO5,Cognition,Verwerking / Organisatie,LABEL_ANNOTATION*,Learners create or choose label for the highlights they made during learning,#FDBF6F
+HCEO6,Cognition,Verwerking / Organisatie,EDIT_ANNOTATION*,Learners take notes during learning,#FDBF6F
+ESSAY_TASK_START,Other,ESSAY_TASK_START,,,#FFFFFF
+ESSAY_TASK_END,Other,ESSAY_TASK_END,,,#FFFFFF
+NO_PATTERN,Other,Niet Gedetecteerd,,,#ebebeb
+NOT_RECOGNIZED,Other,Niet Gedetecteerd,,,#ebebeb
