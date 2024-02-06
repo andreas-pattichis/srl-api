@@ -27,7 +27,6 @@ def load_label_meanings():
 
 
 async def model_to_df(trace_data):
-    username = list()
     save_time = list()
     # Process start time is in ms
     process_start_time = list()
@@ -56,7 +55,6 @@ async def model_to_df(trace_data):
 
         if last_process_label != data.process_label:
             if start_time < settings.MAX_TIME:
-                username.append(data.username)
                 save_time.append(data.save_time)
                 process_label.append(data.process_label)
                 last_process_label = data.process_label
@@ -68,7 +66,6 @@ async def model_to_df(trace_data):
 
 
     df = pd.DataFrame(data={
-        'username': username,
         'process_start_time': process_start_time,
         'process_end_time': process_end_time,
         'process_label': process_label,
