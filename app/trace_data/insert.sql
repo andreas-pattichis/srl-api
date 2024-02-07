@@ -1,4 +1,4 @@
-INSERT INTO tracedata (id, username, course_id, firstname, lastname, save_time, process_label)
+INSERT INTO trace_data (id, username, course_id, firstname, lastname, save_time, process_label)
 VALUES (925781, 'test0 rus2', 25, 'test0', 'rus2', 1698140644893, 'NOT_RECOGNIZED'),
        (925782, 'test0 rus2', 25, 'test0', 'rus2', 1698140644915, 'NOT_RECOGNIZED'),
        (925783, 'test0 rus2', 25, 'test0', 'rus2', 1698140645699, 'NOT_RECOGNIZED'),

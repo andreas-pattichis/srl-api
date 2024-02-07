@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from tortoise.contrib.fastapi import HTTPNotFoundError
+from fastapi import FastAPI, HTTPException
 from tortoise.expressions import Q
 
 from .utils import *
@@ -28,9 +29,7 @@ async def tracedata_results_from_user(username: str, study: str):
     course_ids = await TraceData.filter(firstname=username, lastname=study, process_label__isnull=False).distinct().values('course_id')
 
     if len(course_ids) == 0:
-        return {
-                'statusCode': 404,
-            }
+        raise HTTPException(status_code=404, detail="User not found")
 
     results = []
 
@@ -62,6 +61,5 @@ async def tracedata_results_from_user(username: str, study: str):
         results.append(result)
 
     return {
-        'statusCode': 200,
         'body': results
     }
