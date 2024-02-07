@@ -59,12 +59,20 @@ class Settings(BaseSettings):
 
     load_dotenv(dotenv_path=Path("infra/.env"))
 
-    DATABASE_URI: str = "mysql://{}:{}@{}:{}/{}".format(
+    FLORA_ANNOTATION_DATABASE_URI: str = "mysql://{}:{}@{}:{}/{}".format(
         os.getenv('DB_USER'),
         os.getenv('DB_PASSWORD'),
         os.getenv('DB_HOST'),
         '3306',
-        os.getenv('DB_NAME'),
+        'flora_annotation',
+    )
+
+    MOODLE_DATABASE_URI: str = "mysql://{}:{}@{}:{}/{}".format(
+        os.getenv('DB_USER'),
+        os.getenv('DB_PASSWORD'),
+        os.getenv('DB_HOST'),
+        '3306',
+        'moodle',
     )
 
     class Config:
