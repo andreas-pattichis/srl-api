@@ -38,10 +38,20 @@ async def tracedata_results_from_user(username: str, response: Response):
         series, percentages = await create_series(df, "Combined")
 
         course = await MdlCourse.get(id=course_id['course_id'], using_db=db_moodle)
+        name_nl = "Essay "+str(course_id['course_id'])
+        name_en = "Essay "+str(course_id['course_id'])
+        if course:
+            if '{mlang}' in course.fullname:
+                name_en = course.fullname.split('{mlang en}')[1].split('{mlang}')[0]
+                name_nl = course.fullname.split('{mlang nl}')[1].split('{mlang}')[0] if '{mlang nl}' in course.fullname else name_en
+            else:
+                name_nl = course.fullname
+                name_en = course.fullname
 
         result = {
             'course_id': course_id['course_id'],
-            'name': course.fullname if course else "Essay "+str(course_id['course_id']),
+            'name_nl': name_nl,
+            'name_en': name_en,
             'meta': m_series,
             'm_perc': m_percentages,
             'cog': c_series,
