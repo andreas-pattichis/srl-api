@@ -105,7 +105,7 @@ async def create_series(df, cog_type):
     # now we iterate through each row of the df and if there is a gap between two processes we fill the gap with a BLANK
     m_np = []
 
-    if m_df.iloc[0]["process_start_time"] > 0:
+    if len(m_df) > 0 and m_df.iloc[0]["process_start_time"] > 0:
         m_np.append([0, m_df.iloc[0]["process_start_time"],  m_df.iloc[0]["process_start_time"], "Niet Gedetecteerd", blank_colour])
 
     for i, row in m_df.iterrows():
