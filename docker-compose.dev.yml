@@ -1,0 +1,37 @@
+version: "3.9"
+services:
+  backend:
+    container_name: backend
+    ports:
+      - '80:88'
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 88 --reload --proxy-headers
+    environment:
+      WATCHFILES_FORCE_POLLING: 'true'
+      DB_USER: 'user'
+      DB_PASSWORD: 'password'
+      DB_HOST: 'mysql'
+    volumes:
+      - ./app:/app/app
+
+  mysql:
+    image: mysql:8.1
+    environment:
+      MYSQL_DATABASE: 'flora_annotation'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'password'
+      MYSQL_ROOT_PASSWORD: 'password'
+    volumes:
+      - mysql_db:/var/lib/mysql
+      
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+    ports:
+      - '81:80'
+
+volumes:
+  mysql_db:

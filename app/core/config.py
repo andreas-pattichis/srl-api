@@ -10,7 +10,6 @@ from pydantic import (
 )
 from pydantic_settings import BaseSettings
 import os
-from dotenv import load_dotenv
 
 try:
     from enum import StrEnum
@@ -33,7 +32,6 @@ class Paths:
     BASE_DIR: Path = ROOT_DIR / "app"
     ASSETS_DIR: Path = BASE_DIR / "assets"
     LABEL_NAMES_CSV: Path = ASSETS_DIR / "label_names.csv"
-    INFRA_DIR: Path = ROOT_DIR / "infra"
 
 
 class Settings(BaseSettings):
@@ -56,8 +54,6 @@ class Settings(BaseSettings):
         elif isinstance(v, (list, str)):
             return v
         raise ValueError(v)
-
-    load_dotenv(dotenv_path=Path("infra/.env"))
 
     FLORA_ANNOTATION_DATABASE_URI: str = "mysql://{}:{}@{}:{}/{}".format(
         os.getenv('DB_USER'),
