@@ -1,23 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.db.config import register_db
-from app.essays.models import Essay
-from tortoise.contrib.fastapi import HTTPNotFoundError
-from tortoise.contrib.pydantic import pydantic_model_creator
-from app.essays.routes import router as essays_router
 from app.trace_data.routes import router as tracedata_router
 
 origins = [
     '*'
 ]
 
-
 def get_application() -> FastAPI:
     _app = FastAPI(
         title="SRL API",
         description=""
     )
-    _app.include_router(essays_router)
     _app.include_router(tracedata_router)
     _app.add_middleware(
         CORSMiddleware,
@@ -33,8 +27,6 @@ def get_application() -> FastAPI:
 
 
 app = get_application()
-essay_pydantic = pydantic_model_creator(Essay)
-
 
 @app.get("/")
 def root():

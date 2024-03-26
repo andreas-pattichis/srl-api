@@ -10,7 +10,6 @@ TORTOISE_ORM = {
     "apps": {
         "models": {
             "models": [
-                'app.essays.models',
                 'app.trace_data.models'
             ],
             "default_connection": "flora_annotation",
