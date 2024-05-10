@@ -8,7 +8,7 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 88 --reload --proxy-headers
     environment:
       WATCHFILES_FORCE_POLLING: 'true'
-      DB_USER: 'user'
+      DB_USER: 'root'
       DB_PASSWORD: 'password'
       DB_HOST: 'mysql'
     volumes:
@@ -18,7 +18,7 @@ services:
     image: mysql:8.1
     environment:
       MYSQL_DATABASE: 'flora_annotation'
-      MYSQL_USER: 'user'
+      MYSQL_USER: 'root'
       MYSQL_PASSWORD: 'password'
       MYSQL_ROOT_PASSWORD: 'password'
     volumes:
