@@ -32,6 +32,10 @@ async def tracedata_results_from_user(username: str, response: Response):
         trace_data = await model_to_df(trace_data)
         df = await map_process_labels(trace_data)
 
+        #### Extract Features
+        #### Compute Clusters
+        #### Save Cluster in DB
+
         # making the data series and percentages for meta and cog
         m_series, m_percentages = await create_series(df, "Metacognition")
         c_series, c_percentages = await create_series(df, "Cognition")
