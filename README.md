@@ -14,11 +14,12 @@ To set up the project, follow these steps:
    ```bash
    git clone https://github.com/andreas-pattichis/srl-api.git
    cd srl-api
+    ```
    
 2. **Build and Run with Docker**
    ```bash
    docker compose -f docker-compose.dev.yml up --build
-    
+    ```
 ## Usage
 Once the API is up and running, you can interact with it using the following endpoints:
 
