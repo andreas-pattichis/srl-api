@@ -38,6 +38,18 @@ def load_model_and_scaler():
 # Load the model and scaler outside the endpoint to avoid reloading on each request
 gmm_model, scaler = load_model_and_scaler()
 
+# Features used for scaling
+FEATURE_COLUMNS = [
+    'Total Cycles',
+    'Total Metacognition Actions',
+    'Total Cognition Time',
+    'Initial Orientation Time',
+    'Total High Cognition Actions',
+    'Total High Cognition Time',
+    'Ratio of High Cognition Time',
+    'Total Metacognition Time'
+]
+
 
 @router.get(
     "/{username}",
@@ -61,38 +73,89 @@ async def tracedata_results_from_user(username: str, response: Response):
         trace_data = await TraceData.filter(user_id=user.id, process_label__isnull=False,
                                             course_id=course_id['course_id']).order_by('save_time')
         trace_data = await model_to_df(trace_data)
+        # columns: process_start_time,process_end_time,process_label,process_time_spend
         df = await map_process_labels(trace_data)
+        # columns: process_start_time,process_end_time,process_label,process_time_spend, process_sub, process_main, color
 
-        # # TODO: Implement the following steps
-        # # Copy df to new variable to avoid changing the original df
-        # df_copy = df.copy()
-        #
-        # # Preprocess Data
-        # df_preprocessed_data = preprocess_data(df_copy)
-        #
-        # # Extract Features
-        # df_features = extract_features(df_preprocessed_data)
-        #
-        # # Filter records with conditions
-        # df_filtered = df_features[
-        #     (df_features['Total Cognition Time'] != 9400.913) & (df_features['Total Cognition Time'] > 600)]
-        #
-        # # Remove outliers
-        # z_scores = np.abs((df_filtered - df_filtered.mean()) / df_filtered.std())
-        # df_filtered = df_filtered[(z_scores < 4.5).all(axis=1)]
-        #
-        # # Normalize features and select relevant ones for clustering
-        # df_filtered_norm = scaler.transform(
-        #     df_filtered[['Total Cycles', 'Total Metacognition Actions', 'Total Cognition Time']])
-        #
-        # # Cluster the normalized features
-        # cluster_labels = gmm_model.predict(df_filtered_norm)
-        # probabilities = gmm_model.predict_proba(df_filtered_norm)
-        #
-        # # Get top 2 probabilities and their corresponding labels
-        # top2_indices = np.argsort(probabilities, axis=1)[:, -2:]
-        # top2_labels = np.array([cluster_labels[i, top2_indices[i]] for i in range(len(top2_indices))])
-        # top2_probs = np.array([probabilities[i, top2_indices[i]] for i in range(len(top2_indices))])
+        # Copy df to new variable to avoid changing the original df
+        df_copy = df.copy()
+
+        df_copy['Username'] = username
+
+        # Preprocess Data
+        df_preprocessed_data = preprocess_data(df_copy)
+        # columns: process_start_time,process_end_time,process_label,process_time_spend, process_sub, process_main, color, Username, Process Duration
+        # print("Preprocessed Data:")
+        # print(df_preprocessed_data)
+
+        # Extract Features
+        df_features = extract_features(df_preprocessed_data)
+        # columns: Username, Total Cycles, Initial Orientation Time, Total High Cognition Actions, Total High Cognition Time, Total Cognition Time, Ratio of High Cognition Time, Total Metacognition Time, Total Metacognition Actions
+        # print("Extracted Features:")
+        # print(df_features)
+
+        # Filter records with conditions
+        df_features_filtered = df_features[
+            (df_features['Total Cognition Time'] != 9400.913) & (df_features['Total Cognition Time'] > 600)]
+        # print("Filtered Features:")
+        # print(df_features_filtered)
+
+        # Remove the 'Username' column before normalizing
+        df_features_filtered = df_features_filtered.drop(columns='Username')
+
+        # Remove outliers
+        z_scores = np.abs((df_features_filtered - df_features_filtered.mean()) / df_features_filtered.std())
+        df_features_filtered_copy = df_features_filtered[(z_scores < 4.5).all(axis=1)]
+
+        # FIXME: Sometimes the filtered data is empty, so we keep the original data (temporary solution)
+        if not df_features_filtered_copy.empty:
+            df_features_filtered = df_features_filtered_copy
+
+        # print("Filtered Features (without outliers):")
+        # print(df_features_filtered)
+        # print(df_features_filtered.columns)
+
+        # Normalize features and select relevant ones for clustering
+        df_filtered_norm = scaler.transform(df_features_filtered)
+        # Print column names with the indices
+        # print("Column names with indices:")
+        # for i, column in enumerate(df_features_filtered.columns):
+        #     print(f"{i}: {column}")
+
+        # Keep only columns with indices 0, 7, and 4
+        df_filtered_norm = df_filtered_norm[:, [0, 7, 4]]
+
+        cluster_names = {
+            0: 'The Confident Producers',
+            1: 'The Reflective Writers',
+            2: 'The Thoughtful Planners',
+            3: 'The Confident Producers'
+        }
+
+        # Cluster the normalized features
+        probabilities = gmm_model.predict_proba(df_filtered_norm)
+
+        # Get top 2 probabilities and their corresponding cluster labels for each sample
+        top2_indices = np.argsort(probabilities, axis=1)[:, -2:]
+        top2_labels = np.array([[top2_indices[i, -1], top2_indices[i, -2]] for i in range(len(top2_indices))])
+        top2_probs = np.array([[probabilities[i, top2_indices[i, -1]], probabilities[i, top2_indices[i, -2]]] for i in
+                               range(len(probabilities))])
+
+        # Get the names of the top 2 clusters
+        top2_names = np.array([[cluster_names[label] for label in labels] for labels in top2_labels])
+
+        # Print the top 2 labels and their probabilities
+        # print("Top 2 Labels:")
+        # print(top2_labels)
+        # print("Cluster Names:")
+        # print(top2_names)
+        # print("Top 2 Probabilities:")
+        # print(top2_probs)
+
+        # Get the accumulated probabilities of all other clusters besides the top 2
+        other_probs = 1 - top2_probs.sum(axis=1)
+        # print("Other Clusters Probability:")
+        # print(other_probs)
 
         # making the data series and percentages for meta and cog
         m_series, m_percentages = await create_series(df, "Metacognition")
@@ -121,6 +184,11 @@ async def tracedata_results_from_user(username: str, response: Response):
             'c_perc': c_percentages,
             'combined_perc': percentages,
             'combined_series': series,
+
+            'top2_labels': top2_labels.tolist(),
+            'top2_names': top2_names.tolist(),
+            'top2_probs': top2_probs.tolist(),
+            'other_probs': other_probs.tolist()
         }
 
         results.append(result)
@@ -145,7 +213,11 @@ def preprocess_data(df):
         'MCO5': 'Orientation'
     }
     # Apply the replacement mapping to the 'Process Label' column
-    df['Process Label'] = df['Process Label'].replace(replacement_mapping)
+    df['Process Label'] = df['process_label'].replace(replacement_mapping)
+
+    # Rename 'Process End Time' and 'Process Start Time' columns to 'process_end_time' and 'process_start_time'
+    df.rename(columns={'process_end_time': 'Process End Time', 'process_start_time': 'Process Start Time'},
+              inplace=True)
 
     # 2. ADD NEW COLUMN FOR PROCESS DURATION
     # Calculate 'Process Duration' by subtracting 'Process Start Time' from 'Process End Time'
@@ -153,12 +225,10 @@ def preprocess_data(df):
 
     # 3. CONVERT TIME COLUMNS TO SECONDS
     # Identify columns representing time in milliseconds to convert to seconds
-    correct_time_columns = ['Session Start (ms)', 'Process Start Time', 'Process End Time', 'Process Duration']
+    correct_time_columns = ['Process Start Time', 'Process End Time', 'Process Duration']
     # Convert milliseconds to seconds for the specified columns
     for column in correct_time_columns:
         df[column] = df[column] / 1000.0
-    # Rename the 'Session Start (ms)' column to 'Session Start (s)' to indicate the unit change
-    df.rename(columns={'Session Start (ms)': 'Session Start (s)'}, inplace=True)
 
     # 4. REMOVE ROWS WITH DURATION LESS THAN 1 SECOND
     # Filter out rows where the process duration is less than one second
@@ -225,8 +295,8 @@ def extract_features(df_preprocessed_data):
     user_features = {}
     for row in df_preprocessed_data.itertuples(index=False):
         username = row.Username
-        process_label = row._3
-        process_duration = row._6
+        process_label = row[8]
+        process_duration = row[9]
 
         if username not in user_features:
             user_features[username] = {
@@ -273,7 +343,7 @@ def extract_features(df_preprocessed_data):
 
     for row in df_preprocessed_data.itertuples(index=False):
         username = row.Username
-        process_label = row._3
+        process_label = row[8]
         if process_label.startswith("HCEO"):
             user_features[username]['high_cognition_count'] += 1
 
@@ -287,8 +357,8 @@ def extract_features(df_preprocessed_data):
 
     for row in df_preprocessed_data.itertuples(index=False):
         username = row.Username
-        process_label = row._3
-        process_duration = row._6
+        process_label = row[8]
+        process_duration = row[9]
 
         if process_label.startswith("HCEO"):
             user_features[username]['high_cognition_time'] += process_duration
@@ -311,8 +381,8 @@ def extract_features(df_preprocessed_data):
 
     for row in df_preprocessed_data.itertuples(index=False):
         username = row.Username
-        process_label = row._3
-        process_duration = row._6
+        process_label = row[8]
+        process_duration = row[9]
 
         if process_label.startswith("MCP") or process_label.startswith("MCM") or process_label.startswith(
                 "MCE") or process_label == "Orientation":
@@ -327,7 +397,7 @@ def extract_features(df_preprocessed_data):
 
     for row in df_preprocessed_data.itertuples(index=False):
         username = row.Username
-        process_label = row._3
+        process_label = row[8]
 
         if process_label.startswith("MCP") or process_label.startswith("MCM") or process_label.startswith(
                 "MCE") or process_label == "Orientation":
