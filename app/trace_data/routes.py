@@ -125,11 +125,12 @@ async def tracedata_results_from_user(username: str, response: Response):
         # Keep only columns with indices 0, 7, and 4
         df_filtered_norm = df_filtered_norm[:, [0, 7, 4]]
 
+        # FIXME: Review the order of the cluster names to match the order of the clusters of the model
         cluster_names = {
             0: 'The Confident Producers',
             1: 'The Reflective Writers',
             2: 'The Thoughtful Planners',
-            3: 'The Confident Producers'
+            3: 'The Efficient Scribblers'
         }
 
         # Cluster the normalized features
