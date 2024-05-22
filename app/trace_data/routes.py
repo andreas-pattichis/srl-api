@@ -79,83 +79,8 @@ async def tracedata_results_from_user(username: str, response: Response):
 
         # Copy df to new variable to avoid changing the original df
         df_copy = df.copy()
-
         df_copy['Username'] = username
-
-        # Preprocess Data
-        df_preprocessed_data = preprocess_data(df_copy)
-        # columns: process_start_time,process_end_time,process_label,process_time_spend, process_sub, process_main, color, Username, Process Duration
-        # print("Preprocessed Data:")
-        # print(df_preprocessed_data)
-
-        # Extract Features
-        df_features = extract_features(df_preprocessed_data)
-        # columns: Username, Total Cycles, Initial Orientation Time, Total High Cognition Actions, Total High Cognition Time, Total Cognition Time, Ratio of High Cognition Time, Total Metacognition Time, Total Metacognition Actions
-        # print("Extracted Features:")
-        # print(df_features)
-
-        # Filter records with conditions
-        df_features_filtered = df_features[
-            (df_features['Total Cognition Time'] != 9400.913) & (df_features['Total Cognition Time'] > 600)]
-        # print("Filtered Features:")
-        # print(df_features_filtered)
-
-        # Remove the 'Username' column before normalizing
-        df_features_filtered = df_features_filtered.drop(columns='Username')
-
-        # Remove outliers
-        z_scores = np.abs((df_features_filtered - df_features_filtered.mean()) / df_features_filtered.std())
-        df_features_filtered_copy = df_features_filtered[(z_scores < 4.5).all(axis=1)]
-
-        # FIXME: Sometimes the filtered data is empty, so we keep the original data (temporary solution)
-        if not df_features_filtered_copy.empty:
-            df_features_filtered = df_features_filtered_copy
-
-        # print("Filtered Features (without outliers):")
-        # print(df_features_filtered)
-        # print(df_features_filtered.columns)
-
-        # Normalize features and select relevant ones for clustering
-        df_filtered_norm = scaler.transform(df_features_filtered)
-        # Print column names with the indices
-        # print("Column names with indices:")
-        # for i, column in enumerate(df_features_filtered.columns):
-        #     print(f"{i}: {column}")
-
-        # Keep only columns with indices 0, 7, and 4
-        df_filtered_norm = df_filtered_norm[:, [0, 7, 4]]
-
-        cluster_names = {
-            0: 'Confident Producer',
-            1: 'Reflective Writer',
-            2: 'Thoughtful Planner',
-            3: 'Efficient Scribbler'
-        }
-
-        # Cluster the normalized features
-        probabilities = gmm_model.predict_proba(df_filtered_norm)
-
-        # Get top 2 probabilities and their corresponding cluster labels for each sample
-        top2_indices = np.argsort(probabilities, axis=1)[:, -2:]
-        top2_labels = np.array([[top2_indices[i, -1], top2_indices[i, -2]] for i in range(len(top2_indices))])
-        top2_probs = np.array([[probabilities[i, top2_indices[i, -1]], probabilities[i, top2_indices[i, -2]]] for i in
-                               range(len(probabilities))])
-
-        # Get the names of the top 2 clusters
-        top2_names = np.array([[cluster_names[label] for label in labels] for labels in top2_labels])
-
-        # Print the top 2 labels and their probabilities
-        # print("Top 2 Labels:")
-        # print(top2_labels)
-        # print("Cluster Names:")
-        # print(top2_names)
-        # print("Top 2 Probabilities:")
-        # print(top2_probs)
-
-        # Get the accumulated probabilities of all other clusters besides the top 2
-        other_probs = 1 - top2_probs.sum(axis=1)
-        # print("Other Clusters Probability:")
-        # print(other_probs)
+        cluster_names, cluster_probs = clustering_results(df_copy)
 
         # making the data series and percentages for meta and cog
         m_series, m_percentages = await create_series(df, "Metacognition")
@@ -173,7 +98,7 @@ async def tracedata_results_from_user(username: str, response: Response):
             else:
                 name_nl = course.fullname
                 name_en = course.fullname
-
+        print(cluster_names)
         result = {
             'course_id': course_id['course_id'],
             'name_nl': name_nl,
@@ -185,10 +110,8 @@ async def tracedata_results_from_user(username: str, response: Response):
             'combined_perc': percentages,
             'combined_series': series,
 
-            'top2_labels': top2_labels.tolist(),
-            'top2_names': top2_names.tolist(),
-            'top2_probs': top2_probs.tolist(),
-            'other_probs': other_probs.tolist()
+            'cluster_names': cluster_names,
+            'cluster_probs': cluster_probs
         }
 
         results.append(result)
@@ -407,3 +330,54 @@ def extract_features(df_preprocessed_data):
         lambda x: user_features[x]['metacognition_count'])
 
     return df_features
+
+
+def clustering_results(df_copy):
+    # Preprocess Data
+    df_preprocessed_data = preprocess_data(df_copy)
+    # columns: process_start_time,process_end_time,process_label,process_time_spend, process_sub, process_main,
+    # color, Username, Process Duration
+
+    # Extract Features
+    df_features = extract_features(df_preprocessed_data)
+    # columns: Username, Total Cycles, Initial Orientation Time, Total High Cognition Actions, Total High Cognition
+    # Time, Total Cognition Time, Ratio of High Cognition Time, Total Metacognition Time, Total Metacognition Actions
+
+    # Filter records with conditions
+    df_features_filtered = df_features[
+        (df_features['Total Cognition Time'] != 9400.913) & (df_features['Total Cognition Time'] > 600)]
+
+    # Remove the 'Username' column before normalizing
+    df_features_filtered = df_features_filtered.drop(columns='Username')
+
+    # Remove outliers
+    z_scores = np.abs((df_features_filtered - df_features_filtered.mean()) / df_features_filtered.std())
+    df_features_filtered_copy = df_features_filtered[(z_scores < 4.5).all(axis=1)]
+
+    # FIXME: Sometimes the filtered data is empty, so we keep the original data (temporary solution)
+    if not df_features_filtered_copy.empty:
+        df_features_filtered = df_features_filtered_copy
+
+    # Normalize features and select relevant ones for clustering
+    df_filtered_norm = scaler.transform(df_features_filtered)
+    # Keep only columns with indices 0, 7, and 4
+    df_filtered_norm = df_filtered_norm[:, [0, 7, 4]]
+
+    cluster_names = {
+        0: 'confidentProducer',
+        1: 'reflectiveWriter',
+        2: 'thoughtfulPlanner',
+        3: 'efficientScribbler'
+    }
+    # Cluster the normalized features
+    probabilities = gmm_model.predict_proba(df_filtered_norm)
+    # Get top 2 probabilities and their corresponding cluster labels for each sample
+    top2_indices = np.argsort(probabilities, axis=1)[:, -2:]
+    top2_labels = np.array([[top2_indices[i, -1], top2_indices[i, -2]] for i in range(len(top2_indices))])
+    top2_probs = [[probabilities[i, top2_indices[i, -1]], probabilities[i, top2_indices[i, -2]]] for i in
+                  range(len(probabilities))][0]
+    top2_probs = [round(prob, 2) for prob in top2_probs] # Round to 2 digits
+    # Get the names of the top 2 clusters
+    top2_names = [[cluster_names[label] for label in labels] for labels in top2_labels][0]
+
+    return top2_names, top2_probs
