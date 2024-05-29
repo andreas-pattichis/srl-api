@@ -6,11 +6,15 @@ from app.core.config import settings
 
 
 TORTOISE_ORM = {
-    "connections": {"flora_annotation": settings.FLORA_ANNOTATION_DATABASE_URI, "moodle": settings.MOODLE_DATABASE_URI},
+    "connections": {
+        "flora_annotation": settings.FLORA_ANNOTATION_DATABASE_URI,
+        "moodle": settings.MOODLE_DATABASE_URI
+    },
     "apps": {
         "models": {
             "models": [
-                'app.trace_data.models'
+                'app.trace_data.models',
+                'app.essays.models',
             ],
             "default_connection": "flora_annotation",
         },
