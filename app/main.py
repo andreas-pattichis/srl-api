@@ -8,7 +8,6 @@ origins = [
     '*'
 ]
 
-
 def get_application() -> FastAPI:
     _app = FastAPI(
         title="SRL API",

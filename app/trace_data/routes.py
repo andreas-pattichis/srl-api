@@ -14,15 +14,15 @@ router = APIRouter(prefix="/api/tracedata", tags=["tracedata"])
 )
 async def tracedata_results_from_user(username: str, response: Response):
     url = f'https://nijmegen.floraproject.org/api/tracedata/{username}'
-
     # Send the GET request
     response_api = requests.get(url)
     # Check if the request was successful
     if response_api.status_code == 200:
         # Get JSON data from the response
         data = response_api.json()
-        print(data)
+        # print(data)
     else:
+        # print('User not found')
         response.status_code = 404
         return {
             'message': 'User not found'

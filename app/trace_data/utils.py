@@ -157,8 +157,8 @@ async def create_series(df, cog_type):
 
 def load_model_and_scaler():
     base_path = os.getcwd()  # Gets the current working directory
-    model_path = os.path.join('trace_data', 'gmm_model', 'gmm_model.pkl')
-    scaler_path = os.path.join(base_path, 'trace_data', 'gmm_model', 'scaler.pkl')
+    model_path = os.path.join('app','trace_data', 'gmm_model', 'gmm_model.pkl')
+    scaler_path = os.path.join(base_path, 'app', 'trace_data', 'gmm_model', 'scaler.pkl')
 
     # Print current working directory of the machine
     print(f"Current working directory: {os.path.abspath(os.getcwd())}")
@@ -400,6 +400,9 @@ def clustering_results(data):
     # FIXME: Sometimes the filtered data is empty, so we keep the original data (temporary solution)
     if not df_features_filtered_copy.empty:
         df_features_filtered = df_features_filtered_copy
+
+    if df_features_filtered.empty:
+        return [None, None], [0, 0]
 
     # Normalize features and select relevant ones for clustering
     df_filtered_norm = scaler.transform(df_features_filtered)
