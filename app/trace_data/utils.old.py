@@ -192,44 +192,86 @@ FEATURE_COLUMNS = [
 gmm_model, scaler = load_model_and_scaler()
 
 
-def preprocess_json(data):
-    all_series = data["combined_series"]
-    cog_series = data["meta"]
-    met_series = data["cog"]
+def preprocess_data(df):
+    """
+    Preprocesses the provided DataFrame by applying various data manipulation operations such as label replacements,
+    new column creation for process duration, time unit conversions, row filtering based on conditions,
+    and merging consecutive rows based on criteria.
+    """
 
-    HC = ['Schrijven', 'Verwerking']
-    # LC = ['Lezen', 'Herlezen']
+    # 1. REPLACE LABELS
+    # Define the labels to be replaced and their corresponding new labels
+    replacement_mapping = {
+        'MCO1': 'Orientation',
+        'MCO2': 'Orientation',
+        'MCO3': 'Orientation',
+        'MCO4': 'Orientation',
+        'MCO5': 'Orientation'
+    }
+    # Apply the replacement mapping to the 'Process Label' column
+    df['Process Label'] = df['process_label'].replace(replacement_mapping)
 
-    # Access the 'combined_series' part of the JSON
-    # combined_series_data = data['combined_series']
-    df = pd.DataFrame(all_series)
-    df['data'] = df['data'].apply(lambda x: float(x[0] * 60))
-    df = df[df['name'] != 'Niet Gedetecteerd']
-    df = df[df['data'] >= 1]
+    # Rename 'Process End Time' and 'Process Start Time' columns to 'process_end_time' and 'process_start_time'
+    df.rename(columns={'process_end_time': 'Process End Time', 'process_start_time': 'Process Start Time'},
+              inplace=True)
 
-    # 5. MERGE CONSECUTIVE ROWS WITH EXACT SAME PROCESS LABEL THAT ARE IN HC
-    df['same_as_previous'] = (df['name'] == df['name'].shift()) & df['name'].isin(HC)
-    df['group'] = (~df['same_as_previous']).cumsum()
-    # Now, aggregate these rows
-    aggregated_df = df.groupby(['group', 'name'], as_index=False).agg({
-        'data': 'sum',  # Summing up the data for merged rows
-        'color': 'first'  # Assuming color remains constant within groups; adjust if needed
-    })
-    # Drop the group identifier as it's no longer needed
-    aggregated_df.drop(columns=['group'], inplace=True)
-    # Print or return the resulting DataFrame
-    df = pd.DataFrame(aggregated_df)
-    df['name'].unique()
+    # 2. ADD NEW COLUMN FOR PROCESS DURATION
+    # Calculate 'Process Duration' by subtracting 'Process Start Time' from 'Process End Time'
+    df['Process Duration'] = df['Process End Time'] - df['Process Start Time']
 
-    # Add Username column to deal with code easily refactoring :o
-    constant_value = 'Student'  # This can be any value you choose
-    df = df.assign(Username=constant_value)
-    # Reordering columns to make 'C' the first column
-    df = df[['Username'] + [col for col in df.columns if col != 'Username']]
-    return df
+    # 3. CONVERT TIME COLUMNS TO SECONDS
+    # Identify columns representing time in milliseconds to convert to seconds
+    correct_time_columns = ['Process Start Time', 'Process End Time', 'Process Duration']
+    # Convert milliseconds to seconds for the specified columns
+    for column in correct_time_columns:
+        df[column] = df[column] / 1000.0
 
+    # 4. REMOVE ROWS WITH DURATION LESS THAN 1 SECOND
+    # Filter out rows where the process duration is less than one second  !minute
+    # df = df[df['data'] >= 1]
+    df = df[df['Process Duration'] >= 1]
 
-def extract_features_df(df_preprocessed_data):
+    # 5. MERGE CONSECUTIVE ROWS WITH EXACT SAME PROCESS LABEL THAT START WITH 'HC.'
+    # Initialize a new DataFrame to hold the processed data
+    processed_data = []
+    # Use a while loop to iterate through the DataFrame because we need to skip an unknown number of rows
+    i = 0
+    while i < len(df):
+        current_row = df.iloc[i].copy()
+        # Check if the row's 'Process Label' starts with 'HC.'
+        if current_row['Process Label'].startswith('HC'):
+            # Initialize variables to accumulate the total duration and track the end time of the last consecutive row
+            total_duration = current_row['Process Duration']
+            end_time = current_row['Process End Time']
+            j = i + 1
+            # Loop through following rows to find consecutive rows with the same 'Process Label' and 'Username'
+            while j < len(df):
+                next_row = df.iloc[j]
+                if (current_row['Process Label'] == next_row['Process Label'] and
+                        current_row['Username'] == next_row['Username']):
+                    total_duration += next_row['Process Duration']
+                    end_time = next_row['Process End Time']
+                    j += 1
+                else:
+                    break
+            # Update the current row with the accumulated duration and the last end time
+            current_row['Process Duration'] = total_duration
+            current_row['Process End Time'] = end_time
+            # Append the updated row to the processed data list
+            processed_data.append(current_row)
+            # Skip to the row after the last merged row
+            i = j
+        else:
+            # Append the current row as is to the processed data list if it doesn't start with 'HC.'
+            processed_data.append(current_row)
+            i += 1
+
+    # Convert the processed data list back into a DataFrame
+    df_preprocessed_data = pd.DataFrame(processed_data)
+
+    return df_preprocessed_data
+
+def extract_features(df_preprocessed_data):
     """
     Extracts multiple features from the preprocessed data, focusing on different aspects of user activity
     related to self-regulated learning cycles, high cognition activities, and metacognition measures.
@@ -245,17 +287,12 @@ def extract_features_df(df_preprocessed_data):
     8. Total Metacognition Actions
     """
 
-    HC = ['Schrijven', 'Verwerking']
-    LC = ['Lezen', 'Herlezen']
-
     # Feature 1, 2: Number of Self-Regulated Learning (SRL) Cycles, Initial Orientation Time
     user_features = {}
-
-    # Iterate rows
     for row in df_preprocessed_data.itertuples(index=False):
         username = row.Username
-        process_label = row[1]
-        process_duration = row[2]
+        process_label = row[8]
+        process_duration = row[9]
 
         if username not in user_features:
             user_features[username] = {
@@ -268,19 +305,17 @@ def extract_features_df(df_preprocessed_data):
 
         user_data = user_features[username]
 
-        if process_label == "Orientatie" or process_label == "Plannen":
-            # if process_label == "Orientatie" or process_label.startswith("MCP"):
+        if process_label == "Orientation" or process_label.startswith("MCP"):
             user_data['orientation_found'] = True
             if user_data['cycles'] == 0:
                 user_data['initial_orientation_time'] += process_duration
 
         elif user_data['orientation_found'] and (
-                process_label in HC or process_label == 'Lezen' or process_label == "Herlezen"):
-            # process_label.startswith("HC.EO.") or process_label.startswith("LCF") or process_label.startswith("LCR")):
+                process_label.startswith("HC.EO.") or process_label.startswith("LCF") or process_label.startswith(
+            "LCR")):
             user_data['cognition_found'] = True
 
-        elif user_data['cognition_found'] and (process_label == 'Evaluatie' or process_label == 'Monitoren'):
-            # elif user_data['cognition_found'] and (process_label.startswith("MCE") or process_label.startswith("MCM")):
+        elif user_data['cognition_found'] and (process_label.startswith("MCE") or process_label.startswith("MCM")):
             user_data['evaluation_found'] = True
 
         if user_data['orientation_found'] and user_data['cognition_found'] and user_data['evaluation_found']:
@@ -304,9 +339,8 @@ def extract_features_df(df_preprocessed_data):
 
     for row in df_preprocessed_data.itertuples(index=False):
         username = row.Username
-        process_label = row[1]
-        if process_label in HC:
-            # if process_label.startswith("HCEO"):
+        process_label = row[8]
+        if process_label.startswith("HCEO"):
             user_features[username]['high_cognition_count'] += 1
 
     df_features['Total High Cognition Actions'] = df_features['Username'].apply(
@@ -319,16 +353,14 @@ def extract_features_df(df_preprocessed_data):
 
     for row in df_preprocessed_data.itertuples(index=False):
         username = row.Username
-        process_label = row[1]
-        process_duration = row[2]
+        process_label = row[8]
+        process_duration = row[9]
 
-        if process_label in HC:
-            # if process_label.startswith("HCEO"):
+        if process_label.startswith("HCEO"):
             user_features[username]['high_cognition_time'] += process_duration
             user_features[username]['total_cognition_time'] += process_duration
 
-        elif process_label in LC:
-            # elif process_label.startswith("LCF") or process_label.startswith("LCR"):
+        elif process_label.startswith("LCF") or process_label.startswith("LCR"):
             user_features[username]['total_cognition_time'] += process_duration
 
     df_features['Total High Cognition Time'] = df_features['Username'].apply(
@@ -345,12 +377,11 @@ def extract_features_df(df_preprocessed_data):
 
     for row in df_preprocessed_data.itertuples(index=False):
         username = row.Username
-        process_label = row[1]
-        process_duration = row[2]
+        process_label = row[8]
+        process_duration = row[9]
 
-        if process_label == 'Plannen' or process_label == 'Monitoren' or process_label == 'Evaluatie' or process_label == "Orientatie":
-            # if process_label.startswith("MCP") or process_label.startswith("MCM") or process_label.startswith(
-            #         "MCE") or process_label == "Orientation":
+        if process_label.startswith("MCP") or process_label.startswith("MCM") or process_label.startswith(
+                "MCE") or process_label == "Orientation":
             user_features[username]['metacognition_time'] += process_duration
 
     df_features['Total Metacognition Time'] = df_features['Username'].apply(
@@ -362,11 +393,10 @@ def extract_features_df(df_preprocessed_data):
 
     for row in df_preprocessed_data.itertuples(index=False):
         username = row.Username
-        process_label = row[1]
+        process_label = row[8]
 
-        if process_label == 'Plannen' or process_label == 'Monitoren' or process_label == 'Evaluatie' or process_label == "Orientatie":
-            # if process_label.startswith("MCP") or process_label.startswith("MCM") or process_label.startswith(
-            #         "MCE") or process_label == "Orientation":
+        if process_label.startswith("MCP") or process_label.startswith("MCM") or process_label.startswith(
+                "MCE") or process_label == "Orientation":
             user_features[username]['metacognition_count'] += 1
 
     df_features['Total Metacognition Actions'] = df_features['Username'].apply(
@@ -374,15 +404,14 @@ def extract_features_df(df_preprocessed_data):
 
     return df_features
 
-
-def clustering_results(data):
+def clustering_results(df_copy):
     # Preprocess Data
-    df_preprocessed_data = preprocess_json(data)
+    df_preprocessed_data = preprocess_data(df_copy)
     # columns: process_start_time,process_end_time,process_label,process_time_spend, process_sub, process_main,
     # color, Username, Process Duration
 
     # Extract Features
-    df_features = extract_features_df(df_preprocessed_data)
+    df_features = extract_features(df_preprocessed_data)
     # columns: Username, Total Cycles, Initial Orientation Time, Total High Cognition Actions, Total High Cognition
     # Time, Total Cognition Time, Ratio of High Cognition Time, Total Metacognition Time, Total Metacognition Actions
 
