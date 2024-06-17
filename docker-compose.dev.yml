@@ -3,9 +3,9 @@ services:
   backend:
     container_name: backend
     ports:
-      - '80:88'
+      - '80:80'
     build: .
-    command: uvicorn app.main:app --host 0.0.0.0 --port 88 --reload --proxy-headers
+    command: uvicorn app.main:app --host 0.0.0.0 --port 80 --reload --proxy-headers
     environment:
       WATCHFILES_FORCE_POLLING: 'true'
       DB_USER: 'root'
@@ -23,7 +23,7 @@ services:
       MYSQL_ROOT_PASSWORD: 'password'
     volumes:
       - mysql_db:/var/lib/mysql
-      
+
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     environment:
